@@ -19,9 +19,9 @@
     <script>
         const CONFIG = {
             domain: "luciano.qzz.io",
-            instance: "https://git.luciano.qzz.io", // Tu instancia real
+            instance: "https://git.luciano.qzz.io", 
             token: "no", 
-            mode: "slash" // Usaremos 'sub' para que detecte 'Luciano' del subdominio
+            mode: "slash" 
         };
 
         async function init() {
@@ -29,11 +29,10 @@
             const hostname = window.location.hostname;
             let user = "", repo = "", branch = "pages", filePath = "index.html";
 
-            // Lógica de extracción de URL
             if (CONFIG.mode === "sub") {
                 user = hostname.split('.')[0];
                 const parts = path.split('/').filter(p => p);
-                repo = parts[0] || "Portafolio"; // Por defecto si no hay repo
+                repo = parts[0] || "Portafolio"; 
                 if (parts[1] && parts[1].startsWith('@')) branch = parts[1].substring(1);
             } else {
                 const parts = path.split('/').filter(p => p);
@@ -45,16 +44,20 @@
             const apiUrl = `${CONFIG.instance}/api/v1/repos/${user}/${repo}/contents/${filePath}?ref=${branch}`;
             
             try {
-                const response = await fetch(apiUrl);
+                // Se agregan headers para manejar el token y mejorar la compatibilidad
+                const headers = {};
+                if (CONFIG.token !== "no") {
+                    headers["Authorization"] = `token ${CONFIG.token}`;
+                }
+
+                const response = await fetch(apiUrl, { headers });
                 if (!response.ok) throw new Error("No se pudo obtener el archivo");
                 
                 const data = await response.json();
 
-                // DECODIFICACIÓN SEGURA DE BASE64 (Maneja tildes y emojis de tu portafolio)
-                const rawContent = data.content.replace(/\s/g, ''); // Limpiar espacios/saltos de línea
+                const rawContent = data.content.replace(/\s/g, ''); 
                 const decoded = decodeURIComponent(escape(atob(rawContent)));
 
-                // REEMPLAZO TOTAL DEL DOCUMENTO
                 document.open();
                 document.write(decoded);
                 document.close();
