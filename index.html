@@ -1,73 +1,289 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Pages</title>
-    <style>
-        body { font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #7ec87e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #status { text-align: center; transition: opacity 0.5s; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pages</title>
+<style>
+  /* ============================================================
+     ERROR PAGE STYLES — only shown when serving fails
+     ============================================================ */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body.error-view {
+    font-family: 'Courier New', monospace;
+    background: #0e0e0e;
+    color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .error-box {
+    max-width: 480px;
+    width: 100%;
+    border: 1px solid #333;
+    padding: 2rem 2.5rem;
+  }
+
+  .error-box .code {
+    font-size: 4rem;
+    font-weight: bold;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .error-box .label {
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 1.5rem;
+  }
+
+  .error-box .message {
+    font-size: 0.9rem;
+    color: #aaa;
+    line-height: 1.6;
+  }
+
+  .error-box .detail {
+    margin-top: 1.2rem;
+    font-size: 0.75rem;
+    color: #555;
+    word-break: break-all;
+  }
+</style>
 </head>
 <body>
-    <div id="status">
-        <div class="loader"></div>
-        <p>Cargando...</p>
+
+<script>
+/* ================================================================
+   PAGES — Gitea/Forgejo static site proxy via Cloudflare Pages
+   ================================================================
+
+   CONFIGURATION — edit these 4 values:
+   ---------------------------------------------------------------- */
+
+const CONFIG = {
+  // Your custom domain (without trailing slash)
+  // Example: "wobepages.qzz.io"
+  domain: "wobepages.qzz.io",
+
+  // Your Gitea/Forgejo instance URL (without trailing slash)
+  // Example: "https://git.wobe.qzz.io"
+  instance: "https://git.wobe.qzz.io",
+
+  // Personal access token for private repos, or "no" to skip
+  // Get it from: Settings → Applications → Generate Token
+  token: "no",
+
+  // URL mode: "sub" or "slash"
+  //   sub   → user.domain/repo  (subdomain per user)
+  //   slash → domain/user/repo  (path-based)
+  mode: "sub",
+};
+
+/* ================================================================
+   ENGINE — don't touch below unless you know what you're doing
+   ================================================================ */
+
+(async () => {
+  const host = location.hostname;           // e.g. luciano.wobepages.qzz.io
+  const pathname = location.pathname;       // e.g. /myrepo/@branch/path/file.html
+  const configDomain = CONFIG.domain.replace(/^https?:\/\//, "");
+
+  // ── 1. Parse user, repo, branch, path from URL ──────────────
+
+  let user, repo, branch, filePath;
+
+  if (CONFIG.mode === "sub") {
+    // host must be USER.DOMAIN or DOMAIN
+    if (!host.endsWith(configDomain)) return renderError(400, "Dominio no reconocido", host);
+
+    if (host === configDomain) {
+      // Root domain — no user
+      return renderError(404, "No se especificó un usuario", "Usa USER." + configDomain);
+    }
+
+    // Strip domain suffix
+    const sub = host.slice(0, host.length - configDomain.length - 1); // "luciano"
+    user = sub;
+
+    // pathname: /REPO/@BRANCH/path  or  /REPO/path  or  /@BRANCH/path (repo == user)
+    const parts = pathname.replace(/^\//, "").split("/");
+
+    if (parts[0] && parts[0] !== "" && !parts[0].startsWith("@")) {
+      repo = parts.shift();
+    } else {
+      repo = user; // repo name == username
+    }
+
+    // Check for @branch
+    if (parts[0] && parts[0].startsWith("@")) {
+      branch = parts.shift().slice(1);
+    } else {
+      branch = "pages";
+    }
+
+    filePath = parts.join("/") || "index.html";
+
+  } else {
+    // slash mode: DOMAIN/USER/REPO/@BRANCH/path
+    if (host !== configDomain) return renderError(400, "Dominio no reconocido", host);
+
+    const parts = pathname.replace(/^\//, "").split("/");
+
+    user = parts.shift() || null;
+    if (!user) return renderError(404, "No se especificó un usuario", pathname);
+
+    // If next segment starts with @, repo == user
+    if (!parts[0] || parts[0].startsWith("@")) {
+      repo = user;
+    } else {
+      repo = parts.shift();
+    }
+
+    if (parts[0] && parts[0].startsWith("@")) {
+      branch = parts.shift().slice(1);
+    } else {
+      branch = "pages";
+    }
+
+    filePath = parts.join("/") || "index.html";
+  }
+
+  // Sanitize filePath: default to index.html if it ends with /
+  if (filePath.endsWith("/") || filePath === "") filePath += "index.html";
+
+  // ── 2. Build raw content URL from Gitea API ──────────────────
+
+  const apiBase = CONFIG.instance.replace(/\/$/, "");
+  const headers = {};
+  if (CONFIG.token && CONFIG.token.toLowerCase() !== "no") {
+    headers["Authorization"] = "token " + CONFIG.token;
+  }
+
+  // Verify repo exists (and is accessible)
+  const repoCheckUrl = `${apiBase}/api/v1/repos/${encodeURIComponent(user)}/${encodeURIComponent(repo)}`;
+  let repoData;
+  try {
+    const repoRes = await fetch(repoCheckUrl, { headers });
+    if (repoRes.status === 404) return renderError(404, "Repositorio no encontrado", `${user}/${repo}`);
+    if (repoRes.status === 401 || repoRes.status === 403) return renderError(403, "Acceso denegado", `${user}/${repo}`);
+    if (!repoRes.ok) return renderError(repoRes.status, "Error al acceder al repositorio", repoCheckUrl);
+    repoData = await repoRes.json();
+  } catch (e) {
+    return renderError(502, "No se pudo conectar a la instancia", apiBase);
+  }
+
+  // Fetch raw file
+  const rawUrl = `${apiBase}/${encodeURIComponent(user)}/${encodeURIComponent(repo)}/raw/branch/${encodeURIComponent(branch)}/${filePath}`;
+
+  let fileRes;
+  try {
+    fileRes = await fetch(rawUrl, { headers });
+  } catch (e) {
+    return renderError(502, "No se pudo cargar el archivo", rawUrl);
+  }
+
+  if (fileRes.status === 404) return renderError(404, "Página no encontrada", `${repo}@${branch}/${filePath}`);
+  if (!fileRes.ok) return renderError(fileRes.status, "No se pudo cargar la página", rawUrl);
+
+  // ── 3. Serve the content ─────────────────────────────────────
+
+  const contentType = fileRes.headers.get("content-type") || guessType(filePath);
+  const blob = await fileRes.blob();
+  const objectUrl = URL.createObjectURL(blob);
+
+  if (isText(contentType, filePath)) {
+    const text = await blob.text();
+    if (contentType.includes("text/html") || filePath.endsWith(".html") || filePath.endsWith(".htm")) {
+      // Replace document entirely
+      document.open();
+      document.write(rewriteHtml(text, user, repo, branch, filePath, apiBase, headers));
+      document.close();
+    } else {
+      // Plain text / CSS / JS — show as-is
+      document.open();
+      document.write(`<pre style="font-family:monospace;white-space:pre-wrap;padding:1rem">${escHtml(text)}</pre>`);
+      document.close();
+    }
+  } else {
+    // Binary: redirect to object URL (image, video, pdf, etc.)
+    location.replace(objectUrl);
+  }
+
+})();
+
+// ── Helpers ──────────────────────────────────────────────────────
+
+function guessType(path) {
+  const ext = path.split(".").pop().toLowerCase();
+  const map = {
+    html: "text/html", htm: "text/html",
+    css: "text/css", js: "application/javascript",
+    json: "application/json", txt: "text/plain",
+    md: "text/plain", svg: "image/svg+xml",
+    png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
+    gif: "image/gif", webp: "image/webp", ico: "image/x-icon",
+    mp4: "video/mp4", webm: "video/webm",
+    mp3: "audio/mpeg", ogg: "audio/ogg",
+    pdf: "application/pdf",
+    woff: "font/woff", woff2: "font/woff2", ttf: "font/ttf",
+  };
+  return map[ext] || "application/octet-stream";
+}
+
+function isText(contentType, path) {
+  return contentType.startsWith("text/") ||
+         contentType.includes("javascript") ||
+         contentType.includes("json") ||
+         contentType.includes("svg") ||
+         path.endsWith(".md");
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// Rewrite relative asset paths inside served HTML to point at the raw API
+function rewriteHtml(html, user, repo, branch, filePath, apiBase, headers) {
+  const dirPath = filePath.includes("/") ? filePath.slice(0, filePath.lastIndexOf("/") + 1) : "";
+  const base = `${apiBase}/${encodeURIComponent(user)}/${encodeURIComponent(repo)}/raw/branch/${encodeURIComponent(branch)}/`;
+  // Inject a <base> tag so relative URLs resolve correctly
+  const baseTag = `<base href="${base}${dirPath}">`;
+  return html.replace(/(<head[^>]*>)/i, `$1\n${baseTag}`);
+}
+
+// ── Error renderer ────────────────────────────────────────────────
+
+function renderError(code, message, detail) {
+  const labels = {
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    502: "Bad Gateway",
+  };
+  const label = labels[code] || "Error";
+  document.body.className = "error-view";
+  document.body.innerHTML = `
+    <div class="error-box">
+      <div class="code">${code}</div>
+      <div class="label">${label}</div>
+      <div class="message">${message}</div>
+      ${detail ? `<div class="detail">${escHtml(String(detail))}</div>` : ""}
     </div>
+  `;
+}
 
-    <script>
-        const CONFIG = {
-            domain: "luciano.qzz.io",          // Tu dominio
-            instance: "https://git.luciano.qzz.io", // Tu instancia de Gitea/Forgejo
-            token: "no",                       // Tu token o "no" para repos públicos
-            mode: "slash"                      // "sub" o "slash"
-        };
-
-        async function init() {
-            const path = window.location.pathname;
-            const hostname = window.location.hostname;
-            let user = "", repo = "", branch = "pages", filePath = "index.html";
-
-            // Lógica de extracción de URL según tu especificación
-            const parts = path.split('/').filter(p => p);
-
-            if (CONFIG.mode === "sub") {
-                user = hostname.split('.')[0];
-                repo = parts[0] || user; 
-                if (parts[1] && parts[1].startsWith('@')) branch = parts[1].substring(1);
-            } else {
-                user = parts[0];
-                repo = parts[1] || user;
-                if (parts[2] && parts[2].startsWith('@')) branch = parts[2].substring(1);
-            }
-
-            // Estructura de URL RAW: git.dominio.io/USER/REPO/raw/branch/RAMA/ARCHIVO
-            const rawUrl = `${CONFIG.instance}/${user}/${repo}/raw/branch/${branch}/${filePath}`;
-            
-            try {
-                const headers = {};
-                // RESTAURADO: Sistema de Token para repositorios privados
-                if (CONFIG.token !== "no") {
-                    headers["Authorization"] = `token ${CONFIG.token}`;
-                }
-
-                const response = await fetch(rawUrl, { headers });
-                if (!response.ok) throw new Error("No se pudo obtener el archivo (Verifica el Token o si el repo existe)");
-                
-                const html = await response.text();
-
-                // REEMPLAZO TOTAL DEL DOCUMENTO PARA SERVIR EL SITIO
-                document.open();
-                document.write(html);
-                document.close();
-
-            } catch (err) {
-                document.getElementById('status').innerHTML = `<h3>Error al encontrar la página</h3><p>${err.message}</p>`;
-            }
-        }
-
-        init();
-    </script>
+function escHtml(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+</script>
 </body>
 </html>
