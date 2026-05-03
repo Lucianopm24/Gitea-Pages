@@ -1,19 +1,18 @@
 /**
  * functions/_proxy.js
- * Cloudflare Pages Function — actúa como proxy para evitar CORS.
- * El HTML le pasa la URL y opcionalmente el token.
+ * Cloudflare Pages Function — proxy para evitar CORS.
+ * El HTML le pasa ?url= y opcionalmente ?token=
  * Este archivo NO necesita modificaciones.
  */
 
 export async function onRequest(context) {
   const { request } = context;
 
-  // Solo GET
   if (request.method !== "GET") {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  const url = new URL(request.url);
+  const url    = new URL(request.url);
   const target = url.searchParams.get("url");
   const token  = url.searchParams.get("token");
 
@@ -21,7 +20,6 @@ export async function onRequest(context) {
     return new Response("Missing ?url param", { status: 400 });
   }
 
-  // Seguridad básica: solo permite URLs http/https
   let targetUrl;
   try {
     targetUrl = new URL(target);
@@ -42,14 +40,13 @@ export async function onRequest(context) {
     return new Response("No se pudo conectar a la instancia: " + e.message, { status: 502 });
   }
 
-  // Pasar el body y el content-type tal cual, agregando headers CORS
-  const responseHeaders = new Headers();
-  responseHeaders.set("Access-Control-Allow-Origin", "*");
+  const resHeaders = new Headers();
+  resHeaders.set("Access-Control-Allow-Origin", "*");
   const ct = upstream.headers.get("content-type");
-  if (ct) responseHeaders.set("Content-Type", ct);
+  if (ct) resHeaders.set("Content-Type", ct);
 
   return new Response(upstream.body, {
     status: upstream.status,
-    headers: responseHeaders,
+    headers: resHeaders,
   });
 }
