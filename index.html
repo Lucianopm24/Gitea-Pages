@@ -18,10 +18,10 @@
 
     <script>
         const CONFIG = {
-            domain: "luciano.qzz.io",
-            instance: "https://git.luciano.qzz.io", 
-            token: "no", 
-            mode: "slash" 
+            domain: "luciano.qzz.io",          // Tu dominio
+            instance: "https://git.luciano.qzz.io", // Tu instancia de Gitea/Forgejo
+            token: "no",                       // Tu token o "no" para repos públicos
+            mode: "slash"                      // "sub" o "slash"
         };
 
         async function init() {
@@ -29,37 +29,37 @@
             const hostname = window.location.hostname;
             let user = "", repo = "", branch = "pages", filePath = "index.html";
 
+            // Lógica de extracción de URL según tu especificación
+            const parts = path.split('/').filter(p => p);
+
             if (CONFIG.mode === "sub") {
                 user = hostname.split('.')[0];
-                const parts = path.split('/').filter(p => p);
-                repo = parts[0] || "Portafolio"; 
+                repo = parts[0] || user; 
                 if (parts[1] && parts[1].startsWith('@')) branch = parts[1].substring(1);
             } else {
-                const parts = path.split('/').filter(p => p);
                 user = parts[0];
-                repo = parts[1];
+                repo = parts[1] || user;
                 if (parts[2] && parts[2].startsWith('@')) branch = parts[2].substring(1);
             }
 
-            const apiUrl = `${CONFIG.instance}/api/v1/repos/${user}/${repo}/contents/${filePath}?ref=${branch}`;
+            // Estructura de URL RAW: git.dominio.io/USER/REPO/raw/branch/RAMA/ARCHIVO
+            const rawUrl = `${CONFIG.instance}/${user}/${repo}/raw/branch/${branch}/${filePath}`;
             
             try {
-                // Se agregan headers para manejar el token y mejorar la compatibilidad
                 const headers = {};
+                // RESTAURADO: Sistema de Token para repositorios privados
                 if (CONFIG.token !== "no") {
                     headers["Authorization"] = `token ${CONFIG.token}`;
                 }
 
-                const response = await fetch(apiUrl, { headers });
-                if (!response.ok) throw new Error("No se pudo obtener el archivo");
+                const response = await fetch(rawUrl, { headers });
+                if (!response.ok) throw new Error("No se pudo obtener el archivo (Verifica el Token o si el repo existe)");
                 
-                const data = await response.json();
+                const html = await response.text();
 
-                const rawContent = data.content.replace(/\s/g, ''); 
-                const decoded = decodeURIComponent(escape(atob(rawContent)));
-
+                // REEMPLAZO TOTAL DEL DOCUMENTO PARA SERVIR EL SITIO
                 document.open();
-                document.write(decoded);
+                document.write(html);
                 document.close();
 
             } catch (err) {
