@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>WobePages Proxy</title>
+    <title>Pages</title>
     <style>
         body { font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #7ec87e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
@@ -13,7 +13,7 @@
 <body>
     <div id="status">
         <div class="loader"></div>
-        <p>Cargando desde el Ecosistema Wobe...</p>
+        <p>Cargando...</p>
     </div>
 
     <script>
@@ -60,7 +60,7 @@
                 document.close();
 
             } catch (err) {
-                document.getElementById('status').innerHTML = `<h3>Error en WobePages</h3><p>${err.message}</p>`;
+                document.getElementById('status').innerHTML = `<h3>Error al encontrar la página</h3><p>${err.message}</p>`;
             }
         }
 
