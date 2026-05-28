@@ -7,6 +7,7 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ── Error view ── */
   body.error-view {
     font-family: 'Courier New', monospace;
     background: #0e0e0e;
@@ -17,75 +18,241 @@
     min-height: 100vh;
     padding: 2rem;
   }
+  .error-box { max-width: 480px; width: 100%; border: 1px solid #2a2a2a; padding: 2rem 2.5rem; }
+  .error-box .code { font-size: 4rem; font-weight: bold; color: #fff; line-height: 1; margin-bottom: 0.4rem; }
+  .error-box .label { font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #555; margin-bottom: 1.5rem; }
+  .error-box .message { font-size: 0.88rem; color: #999; line-height: 1.65; }
+  .error-box .detail { margin-top: 1rem; font-size: 0.72rem; color: #444; word-break: break-all; line-height: 1.5; }
 
-  .error-box {
-    max-width: 480px;
+  /* ── Home view ── */
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400&display=swap');
+
+  body.home-view {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    background: #080808;
+    color: #c8c8c8;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    overflow: hidden;
+  }
+
+  body.home-view::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 39px,
+        rgba(255,255,255,0.018) 39px,
+        rgba(255,255,255,0.018) 40px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 39px,
+        rgba(255,255,255,0.018) 39px,
+        rgba(255,255,255,0.018) 40px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .home-wrap {
+    position: relative;
+    z-index: 1;
     width: 100%;
-    border: 1px solid #2a2a2a;
-    padding: 2rem 2.5rem;
+    max-width: 520px;
+    animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both;
   }
 
-  .error-box .code {
-    font-size: 4rem;
-    font-weight: bold;
-    color: #fff;
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Header */
+  .home-header {
+    margin-bottom: 2.8rem;
+  }
+
+  .home-logo {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .home-logo-mark {
+    font-size: 0.65rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #3a3a3a;
+    font-weight: 400;
+    padding: 0.18rem 0.45rem;
+    border: 1px solid #1e1e1e;
+  }
+
+  .home-title {
+    font-size: 1.65rem;
+    font-weight: 600;
+    color: #f0f0f0;
+    letter-spacing: -0.02em;
     line-height: 1;
-    margin-bottom: 0.4rem;
   }
 
-  .error-box .label {
-    font-size: 0.7rem;
+  .home-subtitle {
+    font-size: 0.72rem;
+    color: #3a3a3a;
+    letter-spacing: 0.06em;
+    margin-top: 0.6rem;
+    font-weight: 300;
+  }
+
+  /* Form */
+  .home-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid #1c1c1c;
+  }
+
+  .field-row {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid #1c1c1c;
+    position: relative;
+    transition: background 0.15s;
+  }
+  .field-row:last-of-type { border-bottom: none; }
+  .field-row:focus-within { background: #0f0f0f; }
+
+  .field-label {
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    min-width: 90px;
+    font-size: 0.62rem;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: #555;
-    margin-bottom: 1.5rem;
+    color: #2e2e2e;
+    border-right: 1px solid #1c1c1c;
+    user-select: none;
+    transition: color 0.15s;
+    font-weight: 500;
   }
+  .field-row:focus-within .field-label { color: #555; }
 
-  .error-box .message {
-    font-size: 0.88rem;
-    color: #999;
-    line-height: 1.65;
+  .field-optional {
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
+    color: #252525;
+    display: block;
+    margin-top: 2px;
+    font-weight: 300;
   }
+  .field-row:focus-within .field-optional { color: #3a3a3a; }
 
-  .error-box .detail {
-    margin-top: 1rem;
+  .field-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0.9rem 1rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    color: #e0e0e0;
+    caret-color: #7fff7f;
+    letter-spacing: 0.01em;
+  }
+  .field-input::placeholder {
+    color: #222;
+    font-weight: 300;
+  }
+  .field-input:focus::placeholder { color: #2e2e2e; }
+
+  /* Preview bar */
+  .home-preview {
+    margin-top: 1px;
+    padding: 0.6rem 1rem;
+    font-size: 0.66rem;
+    color: #282828;
+    letter-spacing: 0.04em;
+    min-height: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: color 0.2s;
+    border: 1px solid #1c1c1c;
+    border-top: none;
+  }
+  .home-preview.active { color: #404040; }
+  .home-preview .preview-arrow { color: #1e1e1e; }
+  .home-preview.active .preview-arrow { color: #3a3a3a; }
+  .home-preview .preview-url { color: #4a8a4a; font-weight: 400; }
+
+  /* Submit button */
+  .home-submit {
+    margin-top: 1.4rem;
+    width: 100%;
+    padding: 0.85rem;
+    background: #111;
+    border: 1px solid #252525;
+    color: #888;
+    font-family: 'IBM Plex Mono', monospace;
     font-size: 0.72rem;
-    color: #444;
-    word-break: break-all;
-    line-height: 1.5;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 400;
+    position: relative;
+    overflow: hidden;
   }
+  .home-submit::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.015) 50%, transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.4s;
+  }
+  .home-submit:hover::before { transform: translateX(100%); }
+  .home-submit:hover { border-color: #3a3a3a; color: #bbb; background: #131313; }
+  .home-submit:active { background: #0a0a0a; }
+  .home-submit:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* Footer note */
+  .home-note {
+    margin-top: 2rem;
+    font-size: 0.6rem;
+    color: #202020;
+    letter-spacing: 0.1em;
+    text-align: center;
+    line-height: 1.8;
+  }
+  .home-note span { color: #2a2a2a; }
 </style>
 </head>
 <body>
 <script>
 /* ================================================================
    PAGES — Gitea/Forgejo static hosting via Cloudflare Pages
-   ================================================================
-
-   CONFIGURACIÓN — solo edita estas 4 variables:
-   ---------------------------------------------------------------- */
+   ================================================================ */
 
 const CONFIG = {
-  // Tu dominio base (sin trailing slash, sin https://)
-  // Ejemplo: "wobepages.qzz.io"
-  domain: "luciano.qzz.io",
-
-  // URL de tu instancia Gitea/Forgejo (sin trailing slash)
-  // Ejemplo: "https://git.wobe.qzz.io"
-  instance: "https://git.luciano.qzz.io",
-
-  // Token de acceso personal, o "no" para solo repos públicos
-  // Se genera en: Configuración → Aplicaciones → Generar token
-  token: "no",
-
-  // Modo de URL:
-  //   "sub"   → usuario.tudominio/repo
-  //   "slash" → tudominio/usuario/repo
-  mode: "slash",
+  domain:   "wobepages.qzz.io",
+  instance: "https://git.wobe.qzz.io",
+  token:    "no",
+  mode:     "sub",   // "sub" | "slash"
 };
 
 /* ================================================================
-   MOTOR — no tocar a menos que sepas lo que haces
+   MOTOR
    ================================================================ */
 
 (async () => {
@@ -93,14 +260,20 @@ const CONFIG = {
   const pathname  = location.pathname;
   const cfgDomain = CONFIG.domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-  // ── 1. Parsear usuario, repo, rama y ruta desde la URL ───────
+  // ── Root: mostrar landing page ────────────────────────────────
+  const isRoot = (CONFIG.mode === "sub" && host === cfgDomain)
+              || (CONFIG.mode === "slash" && host === cfgDomain && (pathname === "/" || pathname === ""));
+
+  if (isRoot) {
+    return showHome(cfgDomain);
+  }
+
+  // ── 1. Parsear usuario, repo, rama y ruta ─────────────────────
 
   let user, repo, branch, filePath;
 
   if (CONFIG.mode === "sub") {
-
     if (!host.endsWith(cfgDomain)) return err(400, "Dominio no reconocido", host);
-    if (host === cfgDomain) return err(404, "No se especificó un usuario", "Usa usuario." + cfgDomain);
 
     user = host.slice(0, host.length - cfgDomain.length - 1);
 
@@ -118,7 +291,6 @@ const CONFIG = {
     }
 
   } else {
-    // slash mode
     if (host !== cfgDomain) return err(400, "Dominio no reconocido", host);
 
     const parts = pathname.replace(/^\//, "").split("/").filter(Boolean);
@@ -166,9 +338,6 @@ const CONFIG = {
       const dir      = filePath.includes("/") ? filePath.slice(0, filePath.lastIndexOf("/") + 1) : "";
       const baseHref = `${apiBase}/${enc(user)}/${enc(repo)}/raw/branch/${enc(branch)}/${dir}`;
 
-      // Interceptor: redirige fetch() y XHR que apunten a la instancia
-      // a través del proxy, resolviendo el CORS en llamadas dinámicas
-      // como fetch("/proyectos.json") o fetch("data/info.json")
       const interceptor = `<script>
 (function(){
   var BASE  = ${JSON.stringify(apiBase)};
@@ -177,18 +346,16 @@ const CONFIG = {
 
   function toProxy(url) {
     try {
-      // Resolver la URL relativa o absoluta contra el base del repo
       var abs = /^https?:\/\//i.test(url)
         ? url
         : new URL(url, PFULL).toString();
-      if (!abs.startsWith(BASE)) return url; // externa: no tocar
+      if (!abs.startsWith(BASE)) return url;
       var p = new URLSearchParams({ url: abs });
       if (TOKEN && TOKEN.toLowerCase() !== "no") p.set("token", TOKEN);
       return "/_proxy?" + p.toString();
     } catch(e) { return url; }
   }
 
-  // fetch()
   var _oF = window.fetch;
   window.fetch = function(input, init) {
     if (typeof input === "string") input = toProxy(input);
@@ -196,7 +363,6 @@ const CONFIG = {
     return _oF.call(this, input, init);
   };
 
-  // XMLHttpRequest
   var _oO = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function() {
     var a = Array.prototype.slice.call(arguments);
@@ -224,6 +390,115 @@ const CONFIG = {
   }
 
 })();
+
+// ── Landing page ──────────────────────────────────────────────────
+
+function showHome(cfgDomain) {
+  document.body.className = "home-view";
+  document.body.innerHTML = `
+    <div class="home-wrap">
+      <div class="home-header">
+        <div class="home-logo">
+          <span class="home-logo-mark">static</span>
+          <span class="home-title">Pages</span>
+        </div>
+        <div class="home-subtitle">${esc(cfgDomain)}</div>
+      </div>
+
+      <div class="home-form" id="homeForm">
+        <div class="field-row">
+          <label class="field-label" for="inp-user">User</label>
+          <input class="field-input" id="inp-user" type="text" placeholder="username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <div class="field-row">
+          <label class="field-label" for="inp-repo">Repo</label>
+          <input class="field-input" id="inp-repo" type="text" placeholder="repository" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <div class="field-row" style="border-bottom:none">
+          <label class="field-label" for="inp-branch">
+            Branch
+            <span class="field-optional">optional</span>
+          </label>
+          <input class="field-input" id="inp-branch" type="text" placeholder="pages" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+      </div>
+
+      <div class="home-preview" id="homePreview">
+        <span class="preview-arrow">→</span>
+        <span id="previewUrl">—</span>
+      </div>
+
+      <button class="home-submit" id="homeSubmit" disabled>Go →</button>
+
+      <div class="home-note">
+        branch defaults to <span>pages</span> when left empty<br>
+        powered by Gitea / Forgejo
+      </div>
+    </div>
+  `;
+
+  const inpUser   = document.getElementById('inp-user');
+  const inpRepo   = document.getElementById('inp-repo');
+  const inpBranch = document.getElementById('inp-branch');
+  const preview   = document.getElementById('homePreview');
+  const previewUrl= document.getElementById('previewUrl');
+  const submit    = document.getElementById('homeSubmit');
+
+  function buildUrl() {
+    const user   = inpUser.value.trim();
+    const repo   = inpRepo.value.trim();
+    const branch = inpBranch.value.trim();
+    if (!user) return null;
+
+    const proto = location.protocol + "//";
+
+    if (CONFIG.mode === "sub") {
+      // user.domain/repo/@branch  OR  user.domain (if repo === user)
+      const repoSeg = (repo && repo !== user) ? `/${repo}` : "";
+      const branchSeg = branch ? `/@${branch}` : "";
+      return `${proto}${user}.${cfgDomain}${repoSeg}${branchSeg}/`;
+    } else {
+      // domain/user/repo/@branch
+      const repoSeg = repo ? `/${repo}` : "";
+      const branchSeg = branch ? `/@${branch}` : "";
+      return `${proto}${cfgDomain}/${user}${repoSeg}${branchSeg}/`;
+    }
+  }
+
+  function update() {
+    const url = buildUrl();
+    if (url) {
+      previewUrl.textContent = url;
+      previewUrl.className = "preview-url";
+      preview.className = "home-preview active";
+      submit.disabled = false;
+    } else {
+      previewUrl.textContent = "—";
+      previewUrl.className = "";
+      preview.className = "home-preview";
+      submit.disabled = true;
+    }
+  }
+
+  function go() {
+    const url = buildUrl();
+    if (url) location.href = url;
+  }
+
+  [inpUser, inpRepo, inpBranch].forEach(el => el.addEventListener('input', update));
+
+  [inpUser, inpRepo, inpBranch].forEach(el => el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const url = buildUrl();
+      if (url) go();
+    }
+  }));
+
+  submit.addEventListener('click', go);
+
+  // Auto-focus
+  inpUser.focus();
+}
 
 // ── Utilidades ────────────────────────────────────────────────────
 
