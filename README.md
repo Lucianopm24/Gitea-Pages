@@ -1,6 +1,3 @@
-> [!WARNING]
-> This is not only for pages anymore, its a reworked system for you to create you own mini-web just with your gitea. See innernet.qzz.io for more details
-
 # Gitea-Pages
 
 Agrega la función de Pages a tu Gitea/Forgejo sin tener que hostearlo en tu servidor.
